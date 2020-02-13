@@ -1,0 +1,16 @@
+#!/bin/bash
+set -e
+localDir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+
+if [[ ! -d "$localDir/bin" ]]; then
+    echo "Running first time setup."
+    virtualenv -p python3 "$localDir"
+    source "$localDir/bin/activate"
+    pip install -r requirements.txt
+    echo "First time setup complete."
+    echo 
+else
+    source "$localDir/bin/activate"
+fi
+
+python3 ingest.py "$localDir/ingest.ini" "$1"
