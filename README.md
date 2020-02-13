@@ -16,7 +16,7 @@ EA billing accounts use the EA Portal to [assign roles](https://docs.microsoft.c
 
 This process requires an Azure subscription, resource group, and service principal in the same Azure tenant as the users with access to the billing account. 
 
-[Deploy]((https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fwpbrown%2Fazure-usage-pipeline%2Fmaster%2Fazure-deploy.json)) `azuredeploy.json` using the Azure Portal, Azure CLI, or PowerShell.
+[Deploy](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fwpbrown%2Fazure-usage-pipeline%2Fmaster%2Fazuredeploy.json) `azuredeploy.json` using the Azure Portal, Azure CLI, or PowerShell.
 
 ## Configure the Database
 
