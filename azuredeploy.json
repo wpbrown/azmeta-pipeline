@@ -161,7 +161,7 @@
                 ],
                 "type": "AzureBlobStorage",
                 "typeProperties": {
-                    "serviceEndpoint": "[reference(parameters('storageAccountName')).primaryEndpoints.blob]"
+                    "serviceEndpoint": "[reference(parameters('storageAccountName'), '2019-06-01').primaryEndpoints.blob]"
                 }
             },
             "dependsOn": [
@@ -175,7 +175,7 @@
             "properties": {
                 "type": "AzureDataExplorer",
                 "typeProperties": {
-                    "endpoint": "[reference(parameters('kustoClusterName')).uri]",
+                    "endpoint": "[reference(parameters('kustoClusterName'), '2019-05-15').uri]",
                     "tenant": "[subscription().tenantId]",
                     "servicePrincipalId": "[parameters('kustoIngestClientId')]",
                     "servicePrincipalKey": {
