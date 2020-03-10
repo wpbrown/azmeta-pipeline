@@ -80,10 +80,14 @@ Using provided billing period: 201910
 Generating usage data (this can take 5 to 10 minutes)...   
 ```
 
-# Microsoft Customer Agreement
+# Future State
 
-**NOT YET SUPPORTED**
+This solution will be updated to use the usage data scheduled export functionality once it supports the Usage V2 data format. This solution will support both MCA and EA accounts.
 
-MCA billing accounts use Azure RM RBAC to assign permissions. These permissions can be assigned to the managed identity of the Azure Data Factory. With permission to access to the usage details API in the pipeline, the entire process can be fully automated and run on a monthly schedule.
+Usage data for a closed billing period will be automatically imported in to Azure Data Explorer once it is made available by the Azure Cost Management service. This solution will compress and archive the usage data in the storage account while it is loaded to Azure Data Explorer.
 
-![img](docs/images/mca-flow.svg)
+![img](docs/images/export-flow.svg)
+
+An optional secondary pipeline can deployed within the Data Factory. All of the infrastructure is shared with the pipeline above. This pipeline enables a secondary table in the database which contains the month-to-date usage data for the current (open) billing period.
+
+![img](docs/images/export-flow-pre.svg)
