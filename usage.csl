@@ -13,7 +13,7 @@
 IngestToUsage()
 {
     UsageIngest
-    | extend Tags = todynamic(strcat('{', Tags, '}'))
+    | extend Tags = todynamic(strcat('{', Tags, '}')), ResourceId = tolower(ResourceId)
 }
 
 // Destination Table
