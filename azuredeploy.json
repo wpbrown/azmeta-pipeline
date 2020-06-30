@@ -3,24 +3,45 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "kustoClusterName": {
-            "defaultValue": "[concat('usageade', uniqueString(resourceGroup().id, 'usageade'))]",
+            "defaultValue": "[concat('azmetaade', uniqueString(resourceGroup().id, 'azmetaade'))]",
             "type": "String",
             "metadata": {
                 "description": "Globally unique name for the Kusto cluster. Lowercase letters and numbers. Start with letter. 4-22 characters."
             }
         },
+        "kustoDatabaseName": {
+            "defaultValue": "azmeta",
+            "type": "String",
+            "metadata": {
+                "description": "Name for the azmeta database in your Kusto cluster."
+            }
+        },
         "storageAccountName": {
-            "defaultValue": "[concat('usagesa', uniqueString(resourceGroup().id, 'usagesa'))]",
+            "defaultValue": "[concat('azmetasa', uniqueString(resourceGroup().id, 'azmetasa'))]",
             "type": "String",
             "metadata": {
                 "description": "Globally unique name for the storage account. Lowercase letters and numbers. 3-24 characters."
             }
         },
         "dataFactoryName": {
-            "defaultValue": "[concat('usageadf', uniqueString(resourceGroup().id, 'usageadf'))]",
+            "defaultValue": "[concat('azmetaadf', uniqueString(resourceGroup().id, 'azmetaadf'))]",
             "type": "String",
             "metadata": {
                 "description": "Globally unique name for the data factory. Alphanumerics and hyphens. Start and end with alphanumeric. 3-63 characters."
+            }
+        },
+        "preProduction": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Deploy for pre-production use. Uses development SKU for Azure Data Explorer."
+            }
+        },
+        "_artifactsLocation": {
+            "defaultValue": "https://github.com/wpbrown/azmeta-pipeline/releases/download/latest/",
+            "type": "string",
+            "metadata": {
+                "description": "The base URI where artifacts required by this template are located including a trailing '/'"
             }
         },
         "kustoIngestClientId": {
@@ -34,6 +55,12 @@
             "metadata": {
                 "description": "The client secret for the service principal that data factory will use to connect to Kusto."
             }
+        },
+        "deploymentIdentity": {
+            "type": "String",
+            "metadata": {
+                "description": "The resource id of the user-assigned managed identity resource to use during deployment."
+            }
         }
     },
     "variables": {
@@ -45,9 +72,9 @@
             "name": "[parameters('kustoClusterName')]",
             "location": "[resourceGroup().location]",
             "sku": {
-                "name": "Standard_D11_v2",
-                "tier": "Standard",
-                "capacity": 2
+                "name": "[if(parameters('preProduction'), 'Dev(No SLA)_Standard_D11_v2', 'Standard_D11_v2')]",
+                "tier": "[if(parameters('preProduction'), 'Basic', 'Standard')]",
+                "capacity": "[if(parameters('preProduction'), '1', '2')]"
             },
             "properties": {
                 "enableDiskEncryption": false,
@@ -55,7 +82,7 @@
             }
         },
         {
-            "name": "[concat(parameters('kustoClusterName'), '/usage_db')]",
+            "name": "[concat(parameters('kustoClusterName'), '/', parameters('kustoDatabaseName'))]",
             "type": "Microsoft.Kusto/clusters/databases",
             "apiVersion": "2019-05-15",
             "location": "[resourceGroup().location]",
@@ -70,9 +97,9 @@
         {
             "type": "Microsoft.Kusto/Clusters/Databases/principalAssignments",
             "apiVersion": "2019-11-09",
-            "name": "[concat(parameters('kustoClusterName'), '/usage_db/dfingestionsp')]",
+            "name": "[concat(parameters('kustoClusterName'), '/', parameters('kustoDatabaseName'), '/dfingestionsp')]",
             "dependsOn": [
-                "usage_db"
+                "[parameters('kustoDatabaseName')]"
             ],
             "properties": {
                 "principalId": "[parameters('kustoIngestClientId')]",
@@ -80,6 +107,55 @@
                 "tenantId": "[subscription().tenantId]",
                 "principalType": "App"
             }
+        },
+        {
+            "type": "Microsoft.Kusto/Clusters/Databases/principalAssignments",
+            "apiVersion": "2019-11-09",
+            "name": "[concat(parameters('kustoClusterName'), '/', parameters('kustoDatabaseName'), '/dfdeploysp')]",
+            "dependsOn": [
+                "[parameters('kustoDatabaseName')]"
+            ],
+            "properties": {
+                "principalId": "[reference(parameters('deploymentIdentity'), '2018-11-30').principalId]",
+                "role": "Admin",
+                "tenantId": "[subscription().tenantId]",
+                "principalType": "App"
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deploymentScripts",
+            "apiVersion": "2019-10-01-preview",
+            "name": "initAzmetaDbSchema",
+            "location": "[resourceGroup().location]",
+            "kind": "AzureCLI",
+            "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                    "[parameters('deploymentIdentity')]": {}
+                }
+            },
+            "properties": {
+                "forceUpdateTag": "1",
+                "azCliVersion": "2.0.80",
+                "environmentVariables": [
+                    {
+                        "name": "AZMETA_CLUSTER",
+                        "value": "[reference(parameters('kustoClusterName'), '2019-05-15').uri]"
+                    },
+                    {
+                        "name": "AZMETA_DATABASE",
+                        "value": "[parameters('kustoDatabaseName')]"
+                    }
+                ],
+                "scriptContent": "python3 db_init.pyz \"${AZMETA_CLUSTER}\" \"${AZMETA_DATABASE}\"",
+                "supportingScriptUris": [ "[concat(parameters('_artifactsLocation'), 'db_init.pyz')]" ],
+                "timeout": "PT30M",
+                "cleanupPreference": "OnExpiration",
+                "retentionInterval": "P1D"
+            },
+            "dependsOn": [
+                "dfdeploysp"
+            ]
         },
         {
             "type": "Microsoft.Storage/storageAccounts",
@@ -93,13 +169,13 @@
             "kind": "StorageV2",
             "properties": {
                 "supportsHttpsTrafficOnly": true,
-                "accessTier": "Cool"
+                "accessTier": "[if(parameters('preProduction'), 'Hot', 'Cool')]"
             }
         },
         {
             "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
             "apiVersion": "2019-06-01",
-            "name": "[concat(parameters('storageAccountName'), '/default/usage-amortized')]",
+            "name": "[concat(parameters('storageAccountName'), '/default/usage-final')]",
             "dependsOn": [
                 "[parameters('storageAccountName')]"
             ],
@@ -109,14 +185,39 @@
         },
         {
             "type": "Microsoft.Storage/storageAccounts/blobServices/containers/providers/roleAssignments",
-            "name": "[concat(parameters('storageAccountName'),'/default/usage-amortized/Microsoft.Authorization/', guid(resourceGroup().id, 'roleDfToSa'))]",
+            "name": "[concat(parameters('storageAccountName'),'/default/usage-final/Microsoft.Authorization/', guid(resourceGroup().id, 'roleDfToCf'))]",
             "apiVersion": "2018-07-01",
             "properties": {
                 "principalId": "[reference(parameters('dataFactoryName'), '2018-06-01', 'Full').identity.principalId]",
                 "roleDefinitionId": "[concat(subscription().id, '/providers/Microsoft.Authorization/roleDefinitions/', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]"
             },
             "dependsOn": [
-                "usage-amortized"
+                "usage-final",
+                "pipeline_ingestusage"
+            ]
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+            "apiVersion": "2019-06-01",
+            "name": "[concat(parameters('storageAccountName'), '/default/usage-preliminary')]",
+            "dependsOn": [
+                "[parameters('storageAccountName')]"
+            ],
+            "properties": {
+                "publicAccess": "None"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices/containers/providers/roleAssignments",
+            "name": "[concat(parameters('storageAccountName'),'/default/usage-preliminary/Microsoft.Authorization/', guid(resourceGroup().id, 'roleDfToCp'))]",
+            "apiVersion": "2018-07-01",
+            "properties": {
+                "principalId": "[reference(parameters('dataFactoryName'), '2018-06-01', 'Full').identity.principalId]",
+                "roleDefinitionId": "[concat(subscription().id, '/providers/Microsoft.Authorization/roleDefinitions/', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]"
+            },
+            "dependsOn": [
+                "usage-preliminary",
+                "pipeline_ingestusage"
             ]
         },
         {
@@ -131,29 +232,7 @@
             }
         },
         {
-            "name": "[concat(parameters('dataFactoryName'), '/link_http_generated_blob')]",
-            "type": "Microsoft.DataFactory/factories/linkedServices",
-            "apiVersion": "2018-06-01",
-            "properties": {
-                "type": "HttpServer",
-                "parameters": {
-                    "FullBlobUrl": {
-                        "type": "String"
-                    }
-                },
-                "typeProperties": {
-                    "authenticationType": "Anonymous",
-                    "url": "@{linkedService().FullBlobUrl}"
-                },
-                "annotations": [
-                ]
-            },
-            "dependsOn": [
-                "[parameters('dataFactoryName')]"
-            ]
-        },
-        {
-            "name": "[concat(parameters('dataFactoryName'), '/link_blob_usage_archive')]",
+            "name": "[concat(parameters('dataFactoryName'), '/link_blob_azmeta_account')]",
             "type": "Microsoft.DataFactory/factories/linkedServices",
             "apiVersion": "2018-06-01",
             "properties": {
@@ -169,7 +248,7 @@
             ]
         },
         {
-            "name": "[concat(parameters('dataFactoryName'), '/link_kusto_usage_db')]",
+            "name": "[concat(parameters('dataFactoryName'), '/link_kusto_azmeta')]",
             "type": "Microsoft.DataFactory/factories/linkedServices",
             "apiVersion": "2018-06-01",
             "properties": {
@@ -182,7 +261,7 @@
                         "type": "SecureString",
                         "value": "[parameters('kustoIngestClientSecret')]"
                     },
-                    "database": "usage_db"
+                    "database": "[parameters('kustoDatabaseName')]"
                 }
             },
             "dependsOn": [
@@ -195,7 +274,7 @@
             "apiVersion": "2018-06-01",
             "properties": {
                 "linkedServiceName": {
-                    "referenceName": "link_kusto_usage_db",
+                    "referenceName": "link_kusto_azmeta",
                     "type": "LinkedServiceReference"
                 },
                 "type": "AzureDataExplorerTable",
@@ -206,35 +285,24 @@
                 }
             },
             "dependsOn": [
-                "link_kusto_usage_db"
+                "link_kusto_azmeta"
             ]
         },
         {
-            "name": "[concat(parameters('dataFactoryName'), '/dataset_http_generated_blob')]",
+            "name": "[concat(parameters('dataFactoryName'), '/dataset_blob_usage_incoming')]",
             "type": "Microsoft.DataFactory/factories/datasets",
             "apiVersion": "2018-06-01",
             "properties": {
                 "linkedServiceName": {
-                    "referenceName": "link_http_generated_blob",
-                    "type": "LinkedServiceReference",
-                    "parameters": {
-                        "FullBlobUrl": {
-                            "value": "@dataset().FullBlobUrl",
-                            "type": "Expression"
-                        }
-                    }
+                    "referenceName": "link_blob_azmeta_account",
+                    "type": "LinkedServiceReference"
                 },
-                "parameters": {
-                    "FullBlobUrl": {
-                        "type": "string"
-                    }
-                },
-                "annotations": [
-                ],
+                "annotations": [],
                 "type": "DelimitedText",
                 "typeProperties": {
                     "location": {
-                        "type": "HttpServerLocation"
+                        "type": "AzureBlobStorageLocation",
+                        "container": "usage-final"
                     },
                     "columnDelimiter": ",",
                     "escapeChar": "\"",
@@ -245,16 +313,16 @@
                 ]
             },
             "dependsOn": [
-                "link_http_generated_blob"
+                "link_blob_azmeta_account"
             ]
         },
         {
-            "name": "[concat(parameters('dataFactoryName'), '/dataset_blob_usage_archive')]",
+            "name": "[concat(parameters('dataFactoryName'), '/dataset_blob_usage_compressed')]",
             "type": "Microsoft.DataFactory/factories/datasets",
             "apiVersion": "2018-06-01",
             "properties": {
                 "linkedServiceName": {
-                    "referenceName": "link_blob_usage_archive",
+                    "referenceName": "link_blob_azmeta_account",
                     "type": "LinkedServiceReference"
                 },
                 "parameters": {
@@ -262,8 +330,7 @@
                         "type": "string"
                     }
                 },
-                "annotations": [
-                ],
+                "annotations": [],
                 "type": "DelimitedText",
                 "typeProperties": {
                     "location": {
@@ -272,7 +339,8 @@
                             "value": "@concat(dataset().BlobName, '.csv.gz')",
                             "type": "Expression"
                         },
-                        "container": "usage-amortized"
+                        "folderPath": "archive",
+                        "container": "usage-final"
                     },
                     "columnDelimiter": ",",
                     "compressionCodec": "gzip",
@@ -285,7 +353,7 @@
                 ]
             },
             "dependsOn": [
-                "link_blob_usage_archive"
+                "link_blob_azmeta_account"
             ]
         },
         {
@@ -295,74 +363,11 @@
             "properties": {
                 "activities": [
                     {
-                        "name": "copy_usage_from_generated_to_archive",
-                        "type": "Copy",
-                        "dependsOn": [
-                        ],
-                        "policy": {
-                            "timeout": "7.00:00:00",
-                            "retry": 6,
-                            "retryIntervalInSeconds": 60,
-                            "secureOutput": false,
-                            "secureInput": false
-                        },
-                        "userProperties": [
-                        ],
-                        "typeProperties": {
-                            "source": {
-                                "type": "DelimitedTextSource",
-                                "storeSettings": {
-                                    "type": "HttpReadSettings",
-                                    "requestMethod": "GET"
-                                },
-                                "formatSettings": {
-                                    "type": "DelimitedTextReadSettings"
-                                }
-                            },
-                            "sink": {
-                                "type": "DelimitedTextSink",
-                                "storeSettings": {
-                                    "type": "AzureBlobStorageWriteSettings"
-                                },
-                                "formatSettings": {
-                                    "type": "DelimitedTextWriteSettings",
-                                    "quoteAllText": true,
-                                    "fileExtension": ".txt"
-                                }
-                            },
-                            "enableStaging": false
-                        },
-                        "inputs": [
-                            {
-                                "referenceName": "dataset_http_generated_blob",
-                                "type": "DatasetReference",
-                                "parameters": {
-                                    "FullBlobUrl": {
-                                        "value": "@pipeline().parameters.FullBlobUrl",
-                                        "type": "Expression"
-                                    }
-                                }
-                            }
-                        ],
-                        "outputs": [
-                            {
-                                "referenceName": "dataset_blob_usage_archive",
-                                "type": "DatasetReference",
-                                "parameters": {
-                                    "BlobName": {
-                                        "value": "@pipeline().parameters.BlobName",
-                                        "type": "Expression"
-                                    }
-                                }
-                            }
-                        ]
-                    },
-                    {
                         "name": "copy_usage_from_archive_to_table",
                         "type": "Copy",
                         "dependsOn": [
                             {
-                                "activity": "copy_usage_from_generated_to_archive",
+                                "activity": "compress_incoming",
                                 "dependencyConditions": [
                                     "Succeeded"
                                 ]
@@ -375,14 +380,14 @@
                             "secureOutput": false,
                             "secureInput": false
                         },
-                        "userProperties": [
-                        ],
+                        "userProperties": [],
                         "typeProperties": {
                             "source": {
                                 "type": "DelimitedTextSource",
                                 "storeSettings": {
                                     "type": "AzureBlobStorageReadSettings",
-                                    "recursive": true
+                                    "recursive": true,
+                                    "enablePartitionDiscovery": false
                                 },
                                 "formatSettings": {
                                     "type": "DelimitedTextReadSettings"
@@ -396,13 +401,10 @@
                         },
                         "inputs": [
                             {
-                                "referenceName": "dataset_blob_usage_archive",
+                                "referenceName": "dataset_blob_usage_compressed",
                                 "type": "DatasetReference",
                                 "parameters": {
-                                    "BlobName": {
-                                        "value": "@pipeline().parameters.BlobName",
-                                        "type": "Expression"
-                                    }
+                                    "BlobName": "@last(split(pipeline().parameters.BlobPath, '/'))"
                                 }
                             }
                         ],
@@ -410,14 +412,83 @@
                             {
                                 "referenceName": "dataset_kusto_usage_table",
                                 "type": "DatasetReference",
+                                "parameters": {}
+                            }
+                        ]
+                    },
+                    {
+                        "name": "compress_incoming",
+                        "type": "Copy",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "7.00:00:00",
+                            "retry": 6,
+                            "retryIntervalInSeconds": 60,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "source": {
+                                "type": "DelimitedTextSource",
+                                "storeSettings": {
+                                    "type": "AzureBlobStorageReadSettings",
+                                    "recursive": true,
+                                    "enablePartitionDiscovery": false,
+                                    "prefix": {
+                                        "value": "@{concat(pipeline().parameters.BlobPath, '/', pipeline().parameters.BlobName)}",
+                                        "type": "Expression"
+                                    }
+                                },
+                                "formatSettings": {
+                                    "type": "DelimitedTextReadSettings"
+                                }
+                            },
+                            "sink": {
+                                "type": "DelimitedTextSink",
+                                "storeSettings": {
+                                    "type": "AzureBlobStorageWriteSettings",
+                                    "copyBehavior": "MergeFiles"
+                                },
+                                "formatSettings": {
+                                    "type": "DelimitedTextWriteSettings",
+                                    "quoteAllText": true,
+                                    "fileExtension": ".gz"
+                                }
+                            },
+                            "enableStaging": false,
+                            "translator": {
+                                "type": "TabularTranslator",
+                                "typeConversion": true,
+                                "typeConversionSettings": {
+                                    "allowDataTruncation": true,
+                                    "treatBooleanAsNumber": false
+                                }
+                            }
+                        },
+                        "inputs": [
+                            {
+                                "referenceName": "dataset_blob_usage_incoming",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "referenceName": "dataset_blob_usage_compressed",
+                                "type": "DatasetReference",
                                 "parameters": {
+                                    "BlobName": {
+                                        "value": "@last(split(pipeline().parameters.BlobPath, '/'))",
+                                        "type": "Expression"
+                                    }
                                 }
                             }
                         ]
                     }
                 ],
                 "parameters": {
-                    "FullBlobUrl": {
+                    "BlobPath": {
                         "type": "string"
                     },
                     "BlobName": {
@@ -428,9 +499,79 @@
                 ]
             },
             "dependsOn": [
-                "dataset_http_generated_blob",
-                "dataset_blob_usage_archive",
-                "dataset_kusto_usage_table"
+                "dataset_blob_usage_compressed",
+                "dataset_kusto_usage_table",
+                "dataset_blob_usage_incoming"
+            ]
+        },
+        {
+            "name": "[concat(parameters('dataFactoryName'), '/trigger_usage_final_amortized')]",
+            "type": "Microsoft.DataFactory/factories/triggers",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "pipelines": [
+                    {
+                        "pipelineReference": {
+                            "referenceName": "pipeline_ingestusage",
+                            "type": "PipelineReference"
+                        },
+                        "parameters": {
+                            "BlobPath": "@trigger().outputs.body.folderPath",
+                            "BlobName": "@trigger().outputs.body.fileName"
+                        }
+                    }
+                ],
+                "type": "BlobEventsTrigger",
+                "typeProperties": {
+                    "blobPathBeginsWith": "/usage-final/blobs/export/finalamortized",
+                    "blobPathEndsWith": ".csv",
+                    "ignoreEmptyBlobs": true,
+                    "scope": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+                    "events": [
+                        "Microsoft.Storage.BlobCreated"
+                    ]
+                }
+            },
+            "dependsOn": [
+                "pipeline_ingestusage"
+            ]
+        },
+        {
+            "type": "Microsoft.Resources/deploymentScripts",
+            "apiVersion": "2019-10-01-preview",
+            "name": "startFinalAmortizedTrigger",
+            "location": "[resourceGroup().location]",
+            "kind": "AzurePowerShell",
+            "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                    "[parameters('deploymentIdentity')]": {}
+                }
+            },
+            "properties": {
+                "forceUpdateTag": "1",
+                "azPowerShellVersion": "4.2",
+                "environmentVariables": [
+                    {
+                        "name": "AZMETA_RG",
+                        "value": "[resourceGroup().name]"
+                    },
+                    {
+                        "name": "AZMETA_DATAFACTORY",
+                        "value": "[parameters('dataFactoryName')]"
+                    },
+                    {
+                        "name": "AZMETA_TRIGGER",
+                        "value": "trigger_usage_final_amortized"
+                    }
+                ],
+                "scriptContent": "Start-AzDataFactoryV2Trigger -Name $env:AZMETA_TRIGGER -ResourceGroupName $env:AZMETA_RG -DataFactoryName $env:AZMETA_DATAFACTORY -Force",
+                "timeout": "PT30M",
+                "cleanupPreference": "OnSuccess",
+                "retentionInterval": "P1D"
+            },
+            "dependsOn": [
+                "trigger_usage_final_amortized"
             ]
         }
     ],
