@@ -150,7 +150,7 @@
                 "scriptContent": "python3 db_init.pyz \"${AZMETA_CLUSTER}\" \"${AZMETA_DATABASE}\"",
                 "supportingScriptUris": [ "[concat(parameters('_artifactsLocation'), 'db_init.pyz')]" ],
                 "timeout": "PT30M",
-                "cleanupPreference": "OnExpiration",
+                "cleanupPreference": "OnSuccess",
                 "retentionInterval": "P1D"
             },
             "dependsOn": [
@@ -193,7 +193,7 @@
             },
             "dependsOn": [
                 "usage-final",
-                "pipeline_ingestusage"
+                "pipeline_ingest_usage_final"
             ]
         },
         {
@@ -217,7 +217,7 @@
             },
             "dependsOn": [
                 "usage-preliminary",
-                "pipeline_ingestusage"
+                "pipeline_ingest_usage_preliminary"
             ]
         },
         {
@@ -277,11 +277,19 @@
                     "referenceName": "link_kusto_azmeta",
                     "type": "LinkedServiceReference"
                 },
+                "parameters": {
+                    "Table": {
+                        "type": "string"
+                    }
+                },
                 "type": "AzureDataExplorerTable",
                 "schema": [
                 ],
                 "typeProperties": {
-                    "table": "UsageIngest"
+                    "table": {
+                        "value": "@dataset().Table",
+                        "type": "Expression"
+                    }
                 }
             },
             "dependsOn": [
@@ -297,12 +305,20 @@
                     "referenceName": "link_blob_azmeta_account",
                     "type": "LinkedServiceReference"
                 },
+                "parameters": {
+                    "Container": {
+                        "type": "string"
+                    }
+                },
                 "annotations": [],
                 "type": "DelimitedText",
                 "typeProperties": {
                     "location": {
                         "type": "AzureBlobStorageLocation",
-                        "container": "usage-final"
+                        "container": {
+                            "value": "@dataset().Container",
+                            "type": "Expression"
+                        }
                     },
                     "columnDelimiter": ",",
                     "escapeChar": "\"",
@@ -328,6 +344,9 @@
                 "parameters": {
                     "BlobName": {
                         "type": "string"
+                    },
+                    "Container": {
+                        "type": "string"
                     }
                 },
                 "annotations": [],
@@ -340,7 +359,10 @@
                             "type": "Expression"
                         },
                         "folderPath": "archive",
-                        "container": "usage-final"
+                        "container": {
+                            "value": "@dataset().Container",
+                            "type": "Expression"
+                        }
                     },
                     "columnDelimiter": ",",
                     "compressionCodec": "gzip",
@@ -357,7 +379,7 @@
             ]
         },
         {
-            "name": "[concat(parameters('dataFactoryName'), '/pipeline_ingestusage')]",
+            "name": "[concat(parameters('dataFactoryName'), '/pipeline_ingest_usage_final')]",
             "type": "Microsoft.DataFactory/factories/pipelines",
             "apiVersion": "2018-06-01",
             "properties": {
@@ -404,7 +426,8 @@
                                 "referenceName": "dataset_blob_usage_compressed",
                                 "type": "DatasetReference",
                                 "parameters": {
-                                    "BlobName": "@last(split(pipeline().parameters.BlobPath, '/'))"
+                                    "BlobName": "@last(split(pipeline().parameters.BlobPath, '/'))",
+                                    "Container": "usage-final"
                                 }
                             }
                         ],
@@ -412,7 +435,9 @@
                             {
                                 "referenceName": "dataset_kusto_usage_table",
                                 "type": "DatasetReference",
-                                "parameters": {}
+                                "parameters": {
+                                    "Table": "UsageIngest"
+                                }
                             }
                         ]
                     },
@@ -470,7 +495,9 @@
                             {
                                 "referenceName": "dataset_blob_usage_incoming",
                                 "type": "DatasetReference",
-                                "parameters": {}
+                                "parameters": {
+                                    "Container": "usage-final"
+                                }
                             }
                         ],
                         "outputs": [
@@ -481,7 +508,8 @@
                                     "BlobName": {
                                         "value": "@last(split(pipeline().parameters.BlobPath, '/'))",
                                         "type": "Expression"
-                                    }
+                                    },
+                                    "Container": "usage-final"
                                 }
                             }
                         ]
@@ -505,6 +533,82 @@
             ]
         },
         {
+            "name": "[concat(parameters('dataFactoryName'), '/pipeline_ingest_usage_preliminary')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "copy_usage_to_table",
+                        "type": "Copy",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "7.00:00:00",
+                            "retry": 6,
+                            "retryIntervalInSeconds": 60,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "source": {
+                                "type": "DelimitedTextSource",
+                                "storeSettings": {
+                                    "type": "AzureBlobStorageReadSettings",
+                                    "recursive": true,
+                                    "enablePartitionDiscovery": false,
+                                    "prefix": {
+                                        "value": "@{concat(pipeline().parameters.BlobPath, '/', pipeline().parameters.BlobName)}",
+                                        "type": "Expression"
+                                    }
+                                },
+                                "formatSettings": {
+                                    "type": "DelimitedTextReadSettings"
+                                }
+                            },
+                            "sink": {
+                                "type": "AzureDataExplorerSink",
+                                "ingestionMappingName": "UsageMapping"
+                            },
+                            "enableStaging": false
+                        },
+                        "inputs": [
+                            {
+                                "referenceName": "dataset_blob_usage_incoming",
+                                "type": "DatasetReference",
+                                "parameters": {
+                                    "Container": "usage-preliminary"
+                                }
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "referenceName": "dataset_kusto_usage_table",
+                                "type": "DatasetReference",
+                                "parameters": {
+                                    "Table": "UsagePreliminaryIngest"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "parameters": {
+                    "BlobPath": {
+                        "type": "string"
+                    },
+                    "BlobName": {
+                        "type": "string"
+                    }
+                },
+                "annotations": [
+                ]
+            },
+            "dependsOn": [
+                "dataset_kusto_usage_table",
+                "dataset_blob_usage_incoming"
+            ]
+        },
+        {
             "name": "[concat(parameters('dataFactoryName'), '/trigger_usage_final_amortized')]",
             "type": "Microsoft.DataFactory/factories/triggers",
             "apiVersion": "2018-06-01",
@@ -512,7 +616,7 @@
                 "pipelines": [
                     {
                         "pipelineReference": {
-                            "referenceName": "pipeline_ingestusage",
+                            "referenceName": "pipeline_ingest_usage_final",
                             "type": "PipelineReference"
                         },
                         "parameters": {
@@ -533,13 +637,45 @@
                 }
             },
             "dependsOn": [
-                "pipeline_ingestusage"
+                "pipeline_ingest_usage_final"
+            ]
+        },
+        {
+            "name": "[concat(parameters('dataFactoryName'), '/trigger_usage_preliminary_amortized')]",
+            "type": "Microsoft.DataFactory/factories/triggers",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "pipelines": [
+                    {
+                        "pipelineReference": {
+                            "referenceName": "pipeline_ingest_usage_preliminary",
+                            "type": "PipelineReference"
+                        },
+                        "parameters": {
+                            "BlobPath": "@trigger().outputs.body.folderPath",
+                            "BlobName": "@trigger().outputs.body.fileName"
+                        }
+                    }
+                ],
+                "type": "BlobEventsTrigger",
+                "typeProperties": {
+                    "blobPathBeginsWith": "/usage-final/blobs/export/finalamortized",
+                    "blobPathEndsWith": ".csv",
+                    "ignoreEmptyBlobs": true,
+                    "scope": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+                    "events": [
+                        "Microsoft.Storage.BlobCreated"
+                    ]
+                }
+            },
+            "dependsOn": [
+                "pipeline_ingest_usage_preliminary"
             ]
         },
         {
             "type": "Microsoft.Resources/deploymentScripts",
             "apiVersion": "2019-10-01-preview",
-            "name": "startFinalAmortizedTrigger",
+            "name": "startUsageTriggers",
             "location": "[resourceGroup().location]",
             "kind": "AzurePowerShell",
             "identity": {
@@ -561,17 +697,22 @@
                         "value": "[parameters('dataFactoryName')]"
                     },
                     {
-                        "name": "AZMETA_TRIGGER",
+                        "name": "AZMETA_TRIGGER_FINAL",
                         "value": "trigger_usage_final_amortized"
+                    },
+                    {
+                        "name": "AZMETA_TRIGGER_PRELIMINARY",
+                        "value": "trigger_usage_preliminary_amortized"
                     }
                 ],
-                "scriptContent": "Start-AzDataFactoryV2Trigger -Name $env:AZMETA_TRIGGER -ResourceGroupName $env:AZMETA_RG -DataFactoryName $env:AZMETA_DATAFACTORY -Force",
-                "timeout": "PT30M",
+                "scriptContent": "Start-AzDataFactoryV2Trigger -Name $env:AZMETA_TRIGGER_FINAL -ResourceGroupName $env:AZMETA_RG -DataFactoryName $env:AZMETA_DATAFACTORY -Force; Start-AzDataFactoryV2Trigger -Name $env:AZMETA_TRIGGER_PRELIMINARY -ResourceGroupName $env:AZMETA_RG -DataFactoryName $env:AZMETA_DATAFACTORY -Force",
+                "timeout": "PT15M",
                 "cleanupPreference": "OnSuccess",
                 "retentionInterval": "P1D"
             },
             "dependsOn": [
-                "trigger_usage_final_amortized"
+                "trigger_usage_final_amortized",
+                "trigger_usage_preliminary_amortized"
             ]
         }
     ],
