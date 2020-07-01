@@ -46,7 +46,7 @@ Name | Description
 --- | ---
 **kustoIngestClientId** | *Required*: The client/app id (not object id) for the service principal that the data factory will use to connect to Kusto.
 **kustoIngestClientSecret** | *Required*: The client secret for the service principal that the data factory will use to connect to Kusto.
-**deploymentIdentity** | *Required*: The resource id of the user-assigned managed identity resource to use during deployment. Example `/subscriptions/{GUID}/resourcegroups/{GROUP_NAME}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{NAME}`
+**deploymentIdentity** | *Required*: The resource id of the user-assigned managed identity resource to use during deployment. Example `/subscriptions/{GUID}/resourcegroups/{GROUP_NAME}/` `providers/Microsoft.ManagedIdentity/userAssignedIdentities/{NAME}`
 kustoClusterName | Globally unique name for the Kusto cluster. Lowercase letters and numbers. Start with letter. 4-22 characters.
 kustoDatabaseName | Name for the azmeta database in your Kusto cluster.
 storageAccountName | Globally unique name for the storage account. Lowercase letters and numbers. 3-24 characters.
