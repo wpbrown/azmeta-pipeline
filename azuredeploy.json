@@ -660,7 +660,7 @@
                             "type": "PipelineReference"
                         },
                         "parameters": {
-                            "BlobPath": "@trigger().outputs.body.folderPath",
+                            "BlobPath": "@replace(trigger().outputs.body.folderPath, 'usage-final/', '')",
                             "BlobName": "@trigger().outputs.body.fileName"
                         }
                     }
@@ -692,7 +692,7 @@
                             "type": "PipelineReference"
                         },
                         "parameters": {
-                            "BlobPath": "@trigger().outputs.body.folderPath",
+                            "BlobPath": "@replace(trigger().outputs.body.folderPath, 'usage-preliminary/', '')",
                             "BlobName": "@trigger().outputs.body.fileName"
                         }
                     }
