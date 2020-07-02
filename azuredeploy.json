@@ -417,7 +417,11 @@
                             },
                             "sink": {
                                 "type": "AzureDataExplorerSink",
-                                "ingestionMappingName": "UsageMapping"
+                                "ingestionMappingName": "UsageMapping",
+                                "additionalProperties": {
+                                    "value": "@concat('{\"tags\":\"[\\\"', last(split(pipeline().parameters.BlobPath, '/')), '\\\", \\\"', pipeline().RunId, '\\\"]\"}')",
+                                    "type": "Expression"
+                                }
                             },
                             "enableStaging": false
                         },
@@ -568,7 +572,11 @@
                             },
                             "sink": {
                                 "type": "AzureDataExplorerSink",
-                                "ingestionMappingName": "UsageMapping"
+                                "ingestionMappingName": "UsagePreliminaryMapping",
+                                "additionalProperties": {
+                                    "value": "@concat('{\"tags\":\"[\\\"', last(split(pipeline().parameters.BlobPath, '/')), '\\\", \\\"', pipeline().RunId, '\\\"]\"}')",
+                                    "type": "Expression"
+                                }
                             },
                             "enableStaging": false
                         },
