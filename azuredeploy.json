@@ -699,7 +699,7 @@
                 ],
                 "type": "BlobEventsTrigger",
                 "typeProperties": {
-                    "blobPathBeginsWith": "/usage-final/blobs/export/finalamortized",
+                    "blobPathBeginsWith": "/usage-preliminary/blobs/export/finalamortized",
                     "blobPathEndsWith": ".csv",
                     "ignoreEmptyBlobs": true,
                     "scope": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
