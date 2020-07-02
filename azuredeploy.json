@@ -103,7 +103,7 @@
             ],
             "properties": {
                 "principalId": "[parameters('kustoIngestClientId')]",
-                "role": "Ingestor",
+                "role": "Admin",
                 "tenantId": "[subscription().tenantId]",
                 "principalType": "App"
             }
@@ -574,7 +574,7 @@
                                 "type": "AzureDataExplorerSink",
                                 "ingestionMappingName": "UsagePreliminaryMapping",
                                 "additionalProperties": {
-                                    "value": "@concat('{\"tags\":\"[\\\"', last(split(pipeline().parameters.BlobPath, '/')), '\\\", \\\"', pipeline().RunId, '\\\"]\"}')",
+                                    "value": "@concat('{\"tags\":\"[\\\"drop-by:', pipeline().RunId, '\\\"]\"}')",
                                     "type": "Expression"
                                 }
                             },
@@ -598,7 +598,39 @@
                                 }
                             }
                         ]
+                    },
+                    {
+                        "name": "drop_old_data",
+                        "type": "AzureDataExplorerCommand",
+                        "dependsOn": [
+                            {
+                                "activity": "copy_usage_to_table",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "policy": {
+                            "timeout": "7.00:00:00",
+                            "retry": 6,
+                            "retryIntervalInSeconds": 60,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "command": {
+                                "value": "@concat('.drop extents <| \n  .show table UsagePreliminary extents \n  | extend Tags = split(Tags, \"\\r\\n\")\n  | mv-expand Tags to typeof(string)\n  | where Tags != \"drop-by:', pipeline().RunId,'\"')",
+                                "type": "Expression"
+                            },
+                            "commandTimeout": "00:20:00"
+                        },
+                        "linkedServiceName": {
+                            "referenceName": "link_kusto_azmeta",
+                            "type": "LinkedServiceReference"
+                        }
                     }
+
                 ],
                 "parameters": {
                     "BlobPath": {
