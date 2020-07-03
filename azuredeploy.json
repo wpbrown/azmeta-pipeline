@@ -38,7 +38,7 @@
             }
         },
         "_artifactsLocation": {
-            "defaultValue": "https://github.com/wpbrown/azmeta-pipeline/releases/latest/download/",
+            "defaultValue": "https://github.com/wpbrown/azmeta-pipeline/releases/download/v2.0.0/",
             "type": "string",
             "metadata": {
                 "description": "The base URI where artifacts required by this template are located including a trailing '/'"
