@@ -16,7 +16,7 @@ Currently the Enterprise Agreement [billing account type](https://docs.microsoft
 
 # Architecture
 
-The system consists of an Azure Data Explorer cluster, an Azure Data Factory instance, and a storage account. An admin using an Azure CLI extension or Azure Cost Management automatic export push usage data in to blob containers in the storage account. Azure Data Factory will automatically push new data in to Azure Data Explorer as it arrives in the blob containers.
+The system consists of an Azure Data Explorer cluster, an Azure Data Factory instance, and a storage account. An admin using a command line tool or Azure Cost Management automatic export push usage data in to blob containers in the storage account. Azure Data Factory will automatically push new data in to Azure Data Explorer as it arrives in the blob containers.
 
 ![img](docs/images/usage-pipeline.svg)
 
@@ -53,6 +53,7 @@ kustoDatabaseName | Name for the azmeta database in your Kusto cluster.
 storageAccountName | Globally unique name for the storage account. Lowercase letters and numbers. 3-24 characters.
 dataFactoryName | Globally unique name for the data factory. Alphanumerics and hyphens. Start and end with alphanumeric. 3-63 characters.
 preProduction | Deploy for pre-production use. Uses development (no-SLA) SKU for Azure Data Explorer.
+updating | Set to true if redeploying the template. Data Factory trigger resources can not be redeployed while they are enabled.
 _artifactsLocation | The base URI where artifacts required by this template are located including a trailing '/'. This defaults to the latest release artifact location in GitHub. You may choose to mirror these artifacts for security/audit reasons. Use this parameter to provide your mirror.
 
 ### Azure CLI Tutorial

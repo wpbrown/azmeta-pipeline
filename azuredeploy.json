@@ -37,8 +37,15 @@
                 "description": "Deploy for pre-production use. Uses development SKU for Azure Data Explorer."
             }
         },
+        "updating": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Set to true if redeploying the template. Data Factory trigger resources can not be redeployed while they are enabled."
+            }
+        },
         "_artifactsLocation": {
-            "defaultValue": "https://github.com/wpbrown/azmeta-pipeline/releases/download/v2.0.0/",
+            "defaultValue": "https://github.com/wpbrown/azmeta-pipeline/releases/latest/download/",
             "type": "string",
             "metadata": {
                 "description": "The base URI where artifacts required by this template are located including a trailing '/'"
@@ -145,10 +152,13 @@
                     {
                         "name": "AZMETA_DATABASE",
                         "value": "[parameters('kustoDatabaseName')]"
+                    },
+                    {
+                        "name": "AZMETA_DB_INIT_URL",
+                        "value": "[concat(parameters('_artifactsLocation'), 'db_init.pyz')]"
                     }
                 ],
-                "scriptContent": "python3 db_init.pyz \"${AZMETA_CLUSTER}\" \"${AZMETA_DATABASE}\"",
-                "supportingScriptUris": [ "[concat(parameters('_artifactsLocation'), 'db_init.pyz')]" ],
+                "scriptContent": "curl -LO --retry-connrefused --retry 5 \"${AZMETA_DB_INIT_URL}\"; python3 db_init.pyz \"${AZMETA_CLUSTER}\" \"${AZMETA_DATABASE}\"",
                 "timeout": "PT30M",
                 "cleanupPreference": "OnSuccess",
                 "retentionInterval": "P1D"
@@ -649,6 +659,7 @@
             ]
         },
         {
+            "condition": "[not(parameters('updating'))]",
             "name": "[concat(parameters('dataFactoryName'), '/trigger_usage_final_amortized')]",
             "type": "Microsoft.DataFactory/factories/triggers",
             "apiVersion": "2018-06-01",
@@ -681,6 +692,7 @@
             ]
         },
         {
+            "condition": "[not(parameters('updating'))]",
             "name": "[concat(parameters('dataFactoryName'), '/trigger_usage_preliminary_amortized')]",
             "type": "Microsoft.DataFactory/factories/triggers",
             "apiVersion": "2018-06-01",
