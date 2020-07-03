@@ -765,9 +765,21 @@
             "type": "string",
             "value": "[resourceGroup().name]"
         },
-        "usageDataFactoryName": {
+        "usageDataFactory": {
             "type": "string",
             "value": "[parameters('dataFactoryName')]"
+        },
+        "usageStorageAccount": {
+            "type": "string",
+            "value": "[parameters('storageAccountName')]"
+        },
+        "usageKustoCluster": {
+            "type": "string",
+            "value": "[parameters('kustoClusterName')]"
+        },
+        "usageKustoClusterUrl": {
+            "type": "string",
+            "value": "[reference(parameters('kustoClusterName'), '2019-05-15').uri]"
         }
     }
 }

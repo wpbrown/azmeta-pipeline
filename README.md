@@ -32,6 +32,7 @@ This process requires an Azure subscription, resource group, and service princip
 
 ## Prerequisites
 
+* A subscription with the resource providers `Microsoft.Storage`, `Microsoft.ContainerInstance`, and `Microsoft.EventGrid` already registered. [Register the providers](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/resource-providers-and-types#azure-cli).
 * A resource group is required to deploy in to. [Create a resource group](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/manage-resource-groups-cli#create-resource-groups).
 * A user-assigned managed identity is required during deployment [Create a user-assigned managed identity](https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/how-to-manage-ua-identity-cli). This can be created in the resource group mentioned above, however it is not required to be located there. *This resource can be deleted after deployment of the template is complete.*
 * A service principal with a password/key is required for Azure Data Factory to connect to Azure Data Explorer. [Create a service principal](https://docs.microsoft.com/en-us/cli/azure/create-an-azure-service-principal-azure-cli?view=azure-cli-latest#password-based-authentication). Azure Data Factory does not currently support connecting Azure Data Explorer via managed identity.
@@ -54,6 +55,39 @@ dataFactoryName | Globally unique name for the data factory. Alphanumerics and h
 preProduction | Deploy for pre-production use. Uses development (no-SLA) SKU for Azure Data Explorer.
 _artifactsLocation | The base URI where artifacts required by this template are located including a trailing '/'. This defaults to the latest release artifact location in GitHub. You may choose to mirror these artifacts for security/audit reasons. Use this parameter to provide your mirror.
 
+### Azure CLI Tutorial
+
+This tutorial assumes you are using Bash. Sign in to Azure CLI with `az login` and ensure the correct subscription is the default (`az account show`). You can change the default with `az account set`.
+
+```bash
+# Basic Info
+RG_NAME="azmetapipeline-test-rg"
+SUB_ID=$(az account show --query id -o tsv)
+
+# Ensure the subscription is ready
+az provider register -n 'Microsoft.Storage' --wait
+az provider register -n 'Microsoft.ContainerInstance' --wait
+az provider register -n 'Microsoft.EventGrid' --wait
+
+# Create the service principal for Kusto access
+read -d "\n" -r SP_AID SP_SECRET \
+  <<<$(az ad sp create-for-rbac -n "azmetapipeline-test-sp" --skip-assignment --query "[appId,password]" -o tsv)
+
+# Create the user assigned managed identity and grant it access to the RG
+read -d "\n" -r MUID_RID MUID_PID \
+  <<<$(az identity create -g $RG_NAME -n "deploy-muid" --query "[id,principalId]" -o tsv)
+az role assignment create --assignee $MUID_PID --role "Contributor" \
+  --scope "/subscriptions/$SUB_ID/resourceGroups/$RG_NAME"
+
+# Deploy the template
+az deployment group create -g $RG_NAME \
+  --template-uri "https://raw.githubusercontent.com/wpbrown/azmeta-pipeline/master/azuredeploy.json"
+  --parameters \
+  "deploymentIdentity=$MUID_RID" \
+  "kustoIngestClientId=$SP_AID" \
+  "kustoIngestClientSecret=@"<(echo $SP_SECRET)
+```
+
 ## Configure Exports in Cost Management
 
 Two export rules need to be created in the [export blade](https://portal.azure.com/#blade/Microsoft_Azure_CostManagement/Menu/exports), one for the closed (or 'final') data and one for the open (or 'preliminary') data.
@@ -72,7 +106,7 @@ Within 5 to 10 minutes of new data being exported in to your storage account, yo
 
 # Manual Data Loading
 
-You may want to manually load data, for example to back-fill data from earlier billing periods. This can be accomplished with the CLI tool. 
+You may want to manually load data, for example to back-fill data from earlier billing periods. This can be accomplished with the [azmpcli](https://github.com/wpbrown/azmeta-pipeline-cli) tool. 
 
 EA billing accounts use the EA Portal to [assign roles](https://docs.microsoft.com/en-us/azure/cost-management-billing/manage/ea-portal-get-started#enterprise-user-roles). Because these roles can not currently be assigned to service principal (application identity), an EA admin user must use this tool.
 
@@ -80,6 +114,21 @@ This process requires an account that has:
 
  * Reader or higher access to any subscription in the EA.
  * Storage Blob Data Contributor or higher access to the storage account.
+   * Contributor is not sufficient. You must have Storage Blob Data Contributor.
  * Enterprise Admin rights (read-only is sufficient) in the EA portal
 
-*TBD cli tool is being rewritten and moved to it's [own repo](https://github.com/wpbrown/azmeta-pipeline-cli).*
+Install the tool in the Azure Cloud Shell as described [here](https://github.com/wpbrown/azmeta-pipeline-cli#installation-in-azure-cloud-shell). 
+
+To ingest the first 3 billing periods of 2020:
+
+```shell
+demo@Azure:~$ ./azmpcli -s <STORAGE_ACCOUNT_NAME> 202001 202002 202003
+```
+
+You must supply the storage account name created by your ARM template deployment. If you do not specify any billing period names, the tool will automatically select the latest closed billing period.
+
+If you have access to multiple EA billing accounts you must specify the EA account number. 
+
+```shell
+demo@Azure:~$ ./azmpcli -a <EA_ACCOUNT_NUMBER> -s <STORAGE_ACCOUNT_NAME>
+```
