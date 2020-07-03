@@ -65,15 +65,19 @@ Ensure the correct subscription is the default (`az account show`). You can chan
 # Basic Info
 RG_NAME="azmetapipeline-test-rg"
 SUB_ID=$(az account show --query id -o tsv)
+LOCATION="eastus2"
 
 # Ensure the subscription is ready
 az provider register -n 'Microsoft.Storage' --wait
 az provider register -n 'Microsoft.ContainerInstance' --wait
 az provider register -n 'Microsoft.EventGrid' --wait
 
+# Create the RG
+az group create -n $RG_NAME -l $LOCATION
+
 # Create the service principal for Kusto access
 read -d "\n" -r SP_AID SP_SECRET \
-  <<<$(az ad sp create-for-rbac -n "azmetapipeline-test-sp" --skip-assignment --query "[appId,password]" -o tsv)
+  <<<$(az ad sp create-for-rbac -n "http://azmetapipeline-test-sp" --skip-assignment --query "[appId,password]" -o tsv)
 
 # Create the user assigned managed identity and grant it access to the RG
 read -d "\n" -r MUID_RID MUID_PID \
@@ -83,7 +87,7 @@ az role assignment create --assignee $MUID_PID --role "Contributor" \
 
 # Deploy the template
 az deployment group create -g $RG_NAME \
-  --template-uri "https://raw.githubusercontent.com/wpbrown/azmeta-pipeline/master/azuredeploy.json"
+  --template-uri "https://raw.githubusercontent.com/wpbrown/azmeta-pipeline/master/azuredeploy.json" \
   --parameters \
   "deploymentIdentity=$MUID_RID" \
   "kustoIngestClientId=$SP_AID" \
