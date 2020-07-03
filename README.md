@@ -57,7 +57,9 @@ _artifactsLocation | The base URI where artifacts required by this template are 
 
 ### Azure CLI Tutorial
 
-This tutorial assumes you are using Bash. Sign in to Azure CLI with `az login` and ensure the correct subscription is the default (`az account show`). You can change the default with `az account set`.
+This tutorial assumes you are using Bash. If you are not using the Azure Cloud Shell, sign in to Azure CLI with `az login`.
+
+Ensure the correct subscription is the default (`az account show`). You can change the default with `az account set`.
 
 ```bash
 # Basic Info
@@ -87,6 +89,8 @@ az deployment group create -g $RG_NAME \
   "kustoIngestClientId=$SP_AID" \
   "kustoIngestClientSecret=@"<(echo $SP_SECRET)
 ```
+
+Once the template deployment is complete, you can configure automatic data loading in the next section or [manually load data](#manual-data-loading) with azmpcli.
 
 ## Configure Exports in Cost Management
 
