@@ -141,3 +141,19 @@ If you have access to multiple EA billing accounts you must specify the EA accou
 ```shell
 demo@Azure:~$ ./azmpcli -a <EA_ACCOUNT_NUMBER> -s <STORAGE_ACCOUNT_NAME>
 ```
+
+## Cross-Tenant Data Loading
+
+You can load data even if you've deployed the template to a subscription in a seperate Azure AD tenant from the EA billing account.
+
+Make sure that you have used `az login` to log in to both the EA admin and an account in the tenant where you've deployed the template 
+(i.e they are both listed by `az account list`). As per above, this second account must have Storage Blob Data Contributor on the storage 
+account deployed by the template. Make sure the EA admin is the active default account with `az account show`.
+
+Use the `--storage-subscription` option to provide the subscription ID that the storage account belongs to. The user associated with that subscription in the CLI account list
+will be to authenticate to the storage.
+
+```shell
+demo@Azure:~$ ./azmpcli -s <STORAGE_ACCOUNT_NAME> --storage-subscription <STORAGE_ACCOUNT_SUBSCRIPTION_GUID>
+```
+
