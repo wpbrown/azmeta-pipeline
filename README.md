@@ -8,7 +8,7 @@ The pipeline compresses and stores the [Usage Detail v2](https://docs.microsoft.
 
 This database is meant to be used with the azmeta ecosystem of tools such as an [azmeta-codespace](https://github.com/wpbrown/azmeta-codespace).
 
-You can also connect to your new azmeta database using Azure Data Explorer's own [native tools](https://docs.microsoft.com/en-us/azure/data-explorer/kusto/tools/) such as the [Azure Data Explorer Web UI](https://dataexplorer.azure.com/), [Azure Data Studio](https://docs.microsoft.com/en-us/sql/azure-data-studio/notebooks-kqlmagic?view=sql-server-ver15#kqlmagic-with-azure-monitor-logs), [Kusto Explorer](https://docs.microsoft.com/en-us/azure/data-explorer/kusto/tools/kusto-explorer), or the [Kusto CLI](https://docs.microsoft.com/en-us/azure/data-explorer/kusto/tools/kusto-cli). 
+You can also connect to your new azmeta database using Azure Monitor's [Workbooks](https://docs.microsoft.com/en-us/azure/azure-monitor/platform/workbooks-overview) and Azure Data Explorer's own [native tools](https://docs.microsoft.com/en-us/azure/data-explorer/kusto/tools/) such as the [Azure Data Explorer Web UI](https://dataexplorer.azure.com/), [Azure Data Studio](https://docs.microsoft.com/en-us/sql/azure-data-studio/notebooks-kqlmagic?view=sql-server-ver15#kqlmagic-with-azure-monitor-logs), [Kusto Explorer](https://docs.microsoft.com/en-us/azure/data-explorer/kusto/tools/kusto-explorer), or the [Kusto CLI](https://docs.microsoft.com/en-us/azure/data-explorer/kusto/tools/kusto-cli). 
 
 ## Limitations
 
@@ -99,11 +99,32 @@ Once the template deployment is complete, you can configure automatic data loadi
 
 ## Configure Exports in Cost Management
 
-Two export rules need to be created in the [export blade](https://portal.azure.com/#blade/Microsoft_Azure_CostManagement/Menu/exports), one for the closed (or 'final') data and one for the open (or 'preliminary') data.
-
-*Exact process is TBD.*
+Two export rules need to be created in the [Cost Management Exports blade](https://portal.azure.com/#blade/Microsoft_Azure_CostManagement/Menu/exports): one for the closed (or "final") billing period and one for the open (or "preliminary") billing period. The user that creates the export rules needs to be a contributor over the billing scope and on the storage account (that was created by the template deployment above). If the scope is then entire Enterprise Agreement the user must at least be assigned Read-only Enterprise Admin in the EA portal.
 
 Within 5 to 10 minutes of new data being exported in to your storage account, you should see the data appearing in your Azure Data Explorer tables.
+
+### Azure Portal
+
+[Create 2 export rules](https://docs.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-export-acm-data) in the portal with the exact configuration shown below (including the name). Use the new storage account deployed by the ARM template.
+
+#### Final Amortized
+
+![img](docs/images/export-finalamortized.png)
+
+#### Preliminary Amortized
+
+![img](docs/images/export-preliminaryamortized.png)
+
+### Azure CLI
+
+Before using the CLI, you must first install the Cost Management extension.
+
+```bash
+az extension add --name "costmanagement"
+```
+
+*TBD, CLI doesn't work currently*
+
 
 # Uninstallation
 
