@@ -724,6 +724,39 @@
         },
         {
             "condition": "[not(parameters('updating'))]",
+            "name": "[concat(parameters('dataFactoryName'), '/trigger_usage_final_amortized_onetime')]",
+            "type": "Microsoft.DataFactory/factories/triggers",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "pipelines": [
+                    {
+                        "pipelineReference": {
+                            "referenceName": "pipeline_ingest_usage_final",
+                            "type": "PipelineReference"
+                        },
+                        "parameters": {
+                            "BlobPath": "@replace(trigger().outputs.body.folderPath, 'usage-final/', '')",
+                            "BlobName": "@trigger().outputs.body.fileName"
+                        }
+                    }
+                ],
+                "type": "BlobEventsTrigger",
+                "typeProperties": {
+                    "blobPathBeginsWith": "/usage-final/blobs/export/onetime",
+                    "blobPathEndsWith": ".csv",
+                    "ignoreEmptyBlobs": true,
+                    "scope": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+                    "events": [
+                        "Microsoft.Storage.BlobCreated"
+                    ]
+                }
+            },
+            "dependsOn": [
+                "pipeline_ingest_usage_final"
+            ]
+        },
+        {
+            "condition": "[not(parameters('updating'))]",
             "name": "[concat(parameters('dataFactoryName'), '/trigger_usage_preliminary_amortized')]",
             "type": "Microsoft.DataFactory/factories/triggers",
             "apiVersion": "2018-06-01",
@@ -784,18 +817,23 @@
                         "value": "trigger_usage_final_amortized"
                     },
                     {
+                        "name": "AZMETA_TRIGGER_FINAL_ONETIME",
+                        "value": "trigger_usage_final_amortized_onetime"
+                    },
+                    {
                         "name": "AZMETA_TRIGGER_PRELIMINARY",
                         "value": "trigger_usage_preliminary_amortized"
                     }
                 ],
-                "scriptContent": "Start-AzDataFactoryV2Trigger -Name $env:AZMETA_TRIGGER_FINAL -ResourceGroupName $env:AZMETA_RG -DataFactoryName $env:AZMETA_DATAFACTORY -Force; Start-AzDataFactoryV2Trigger -Name $env:AZMETA_TRIGGER_PRELIMINARY -ResourceGroupName $env:AZMETA_RG -DataFactoryName $env:AZMETA_DATAFACTORY -Force",
+                "scriptContent": "@($env:AZMETA_TRIGGER_FINAL, $env:AZMETA_TRIGGER_FINAL_ONETIME, $env:AZMETA_TRIGGER_PRELIMINARY) | ForEach-Object { Start-AzDataFactoryV2Trigger -Name $_ -ResourceGroupName $env:AZMETA_RG -DataFactoryName $env:AZMETA_DATAFACTORY -Force; }",
                 "timeout": "PT15M",
                 "cleanupPreference": "OnSuccess",
                 "retentionInterval": "P1D"
             },
             "dependsOn": [
                 "trigger_usage_final_amortized",
-                "trigger_usage_preliminary_amortized"
+                "trigger_usage_preliminary_amortized",
+                "trigger_usage_final_amortized_onetime"
             ]
         }
     ],
