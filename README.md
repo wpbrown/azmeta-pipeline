@@ -212,8 +212,7 @@ EA billing accounts use the EA Portal to [assign roles](https://docs.microsoft.c
 This process requires an account that has:
 
  * Reader or higher access to any subscription in the EA.
- * Storage Blob Data Contributor or higher access to the storage account.
-   * Contributor is not sufficient. You must have Storage Blob Data Contributor.
+ * Contributor or higher access to the storage account.
  * Enterprise Admin rights (read-only is sufficient) in the EA portal
 
 Install the tool in the Azure Cloud Shell as described [here](https://github.com/wpbrown/azmeta-pipeline-cli#installation-in-azure-cloud-shell). 
@@ -221,29 +220,22 @@ Install the tool in the Azure Cloud Shell as described [here](https://github.com
 To ingest the first 3 billing periods of 2020:
 
 ```shell
-demo@Azure:~$ ./azmpcli -s <STORAGE_ACCOUNT_NAME> 202001 202002 202003
+demo@Azure:~$ STORAGE_ACCOUNT_ID="/subscriptions/{GUID}/resourceGroups/{GROUP_NAME}/providers/Microsoft.Storage/storageAccounts/{NAME}"
+demo@Azure:~$ ./azmpcli -s "$STORAGE_ACCOUNT_ID" 202001 202002 202003
 ```
 
-You must supply the storage account name created by your ARM template deployment. If you do not specify any billing period names, the tool will automatically select the latest closed billing period.
-
-If you have access to multiple EA billing accounts you must specify the EA account number. 
+If you have access to multiple EA billing accounts you must specify the EA account number as shown below. If you do not specify any billing period names, the tool will automatically select the latest closed billing period.
 
 ```shell
-demo@Azure:~$ ./azmpcli -a <EA_ACCOUNT_NUMBER> -s <STORAGE_ACCOUNT_NAME>
+demo@Azure:~$ EA_NUMBER="00000000"
+demo@Azure:~$ ./azmpcli -a "$EA_NUMBER" -s "$STORAGE_ACCOUNT_ID"
 ```
 
 ## Cross-Tenant Data Loading
 
 You can load data even if you've deployed the template to a subscription in a seperate Azure AD tenant from the EA billing account.
 
-Make sure that you have used `az login` to log in to both the EA admin and an account in the tenant where you've deployed the template 
-(i.e they are both listed by `az account list`). As per above, this second account must have Storage Blob Data Contributor on the storage 
-account deployed by the template. Make sure the EA admin is the active default account with `az account show`.
+Create a storage account in a subscription that is tied to the Azure AD tenant where the data is being exported. For one-time loads use [AzCopy](https://docs.microsoft.com/en-us/azure/storage/common/storage-use-azcopy-blobs) or the [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/storage/blob/copy?view=azure-cli-latest) to copy the container contents to the `usage-final` container in the storage account deployed by the template. The naming structure within the source container must be preserved. The azmeta Azure Data Factory pipeline will automatically ingest the copied blobs.
 
-Use the `--storage-subscription` option to provide the subscription ID that the storage account belongs to. The user associated with that subscription in the CLI account list
-will be to authenticate to the storage.
-
-```shell
-demo@Azure:~$ ./azmpcli -s <STORAGE_ACCOUNT_NAME> --storage-subscription <STORAGE_ACCOUNT_SUBSCRIPTION_GUID>
-```
+For longer-term operation, use [Azure Data Factory](https://docs.microsoft.com/en-us/azure/data-factory/quickstart-create-data-factory-copy-data-tool) to automatically copy new files over to the azmeta storage account.
 
