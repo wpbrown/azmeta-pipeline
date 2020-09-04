@@ -117,14 +117,83 @@ Within 5 to 10 minutes of new data being exported in to your storage account, yo
 
 ### Azure CLI
 
-Before using the CLI, you must first install the Cost Management extension.
+The Azure CLI Cost Management extension does not support the neccessary API version at this time. The Azure CLI rest command can be used to call the Cost Management REST APIs.
+
+Replace the `EA_NUMBER` with your EA enrollment number below. Replace `STORAGE_ACCOUNT_ID` with the full resource ID of the azmeta storage account created by the template above.
 
 ```bash
-az extension add --name "costmanagement"
+# Basic Info
+EA_NUMBER="00000000"
+STORAGE_ACCOUNT_ID="/subscriptions/{GUID}/resourceGroups/{GROUP_NAME}/providers/Microsoft.Storage/storageAccounts/{NAME}"
+
+# Create the finalamortized rule
+FROM_MONTH=$(date $([[ $(date +%-d) -ge 5 ]] && echo "-d +1month") "+%Y-%m")
+az rest --method put --body "@-" \
+  --uri "/providers/Microsoft.Billing/billingAccounts/${EA_NUMBER}/providers/Microsoft.CostManagement/exports/finalamortized?api-version=2020-06-01" \
+  <<- EOF
+{
+    "properties": {
+        "schedule": {
+            "status": "Active",
+            "recurrence": "Monthly",
+            "recurrencePeriod": {
+                "from": "${FROM_MONTH}-05T00:00:00Z",
+                "to": "2050-01-05T00:00:00Z"
+            }
+        },
+        "format": "Csv",
+        "deliveryInfo": {
+            "destination": {
+                "resourceId": "${STORAGE_ACCOUNT_ID}",
+                "container": "usage-final",
+                "rootFolderPath": "export"
+            }
+        },
+        "definition": {
+            "type": "AmortizedCost",
+            "timeframe": "TheLastBillingMonth",
+            "dataSet": {
+                "granularity": "Daily"
+            }
+        }
+    }
+}
+EOF
+
+# Create the preliminaryamortized rule
+FROM_DAY=$(date -d "+1day" "+%Y-%m-%d")
+az rest --method put --body "@-" \
+  --uri "/providers/Microsoft.Billing/billingAccounts/${EA_NUMBER}/providers/Microsoft.CostManagement/exports/preliminaryamortized?api-version=2020-06-01" \
+  <<- EOF
+{
+    "properties": {
+        "schedule": {
+            "status": "Active",
+            "recurrence": "Daily",
+            "recurrencePeriod": {
+                "from": "${FROM_DAY}T00:00:00Z",
+                "to": "2050-01-01T00:00:00Z"
+            }
+        },
+        "format": "Csv",
+        "deliveryInfo": {
+            "destination": {
+                "resourceId": "${STORAGE_ACCOUNT_ID}",
+                "container": "usage-preliminary",
+                "rootFolderPath": "export"
+            }
+        },
+        "definition": {
+            "type": "AmortizedCost",
+            "timeframe": "BillingMonthToDate",
+            "dataSet": {
+                "granularity": "Daily"
+            }
+        }
+    }
+}
+EOF
 ```
-
-*TBD, CLI doesn't work currently*
-
 
 # Uninstallation
 
