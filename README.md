@@ -26,6 +26,34 @@ Usage data for a closed billing period will be automatically imported in to Azur
 
 Month-to-date usage data for the currently open billing period will be automatically import on a nightly schedule as it exported. This data will be imported in to the `UsagePreliminary` table and all records are subject to change until the billing period has closed. 
 
+Each month, after the closed version of a month has been committed to the `Usage` table, the open version of that month will be dropped from the `UsagePreliminary` table. The `UsagePreliminary` table is a sliding window of open billing data. For example:
+
+```
+On 2020-02-28:
+  Usage contains closed billing months:   ... [2019-11] [2019-12] [2020-01]
+  UsagePreliminary contain open billing days: [2020-02-01 - 2020-02-27]
+On 2020-03-01:
+  Usage contains closed billing months:   ... [2019-11] [2019-12] [2020-01]
+  UsagePreliminary contain open billing days: [2020-02-01 - 2020-02-28]
+On 2020-03-04:
+  Usage contains closed billing months:   ... [2019-11] [2019-12] [2020-01]
+  UsagePreliminary contain open billing days: [2020-02-01 - 2020-02-28] [2020-03-01 - 2020-03-03]
+On 2020-03-05:
+  Usage contains closed billing months:   ... [2019-11] [2019-12] [2020-01] [2020-02]
+  UsagePreliminary contain open billing days: [2020-03-01 - 2020-03-04]
+On 2020-03-08:
+  Usage contains closed billing months:   ... [2019-11] [2019-12] [2020-01] [2020-02]
+  UsagePreliminary contain open billing days: [2020-03-01 - 2020-03-07]
+```
+
+If you are writing queries that should only deal with closed billing data, simply query against the `Usage` table. If you would like to write queries that span closed and open data you can join the tables:
+
+```kql
+Usage 
+| union UsagePreliminary 
+| summarize sum(CostInBillingCurrency) by Date
+```
+
 # Installation
 
 This process requires an Azure subscription, resource group, and service principal in the same Azure tenant as the users with access to the billing account. 
@@ -80,9 +108,12 @@ az group create -n $RG_NAME -l $LOCATION
 read -d "\n" -r SP_AID SP_SECRET \
   <<<$(az ad sp create-for-rbac -n "http://azmetapipeline-test-sp" --skip-assignment --query "[appId,password]" -o tsv)
 
-# Create the user assigned managed identity and grant it access to the RG
+# Create the user assigned managed identity
 read -d "\n" -r MUID_RID MUID_PID \
   <<<$(az identity create -g $RG_NAME -n "deploy-muid" --query "[id,principalId]" -o tsv)
+
+# Grant the user assigned managed identity access to the RG
+# May need a few seconds after last command due to AAD eventual consistency
 az role assignment create --assignee $MUID_PID --role "Contributor" \
   --scope "/subscriptions/$SUB_ID/resourceGroups/$RG_NAME"
 
