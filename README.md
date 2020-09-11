@@ -255,6 +255,8 @@ demo@Azure:~$ STORAGE_ACCOUNT_ID="/subscriptions/{GUID}/resourceGroups/{GROUP_NA
 demo@Azure:~$ ./azmpcli -s "$STORAGE_ACCOUNT_ID" 202001 202002 202003
 ```
 
+You should see `Queued all exports.` after a few seconds. These exports should show up as `onetime<GUID>` in the Cost Management Exports blade. These can be deleted after the export completes, or retained for record keeping purposes. Once the exports are completed the Azure Data Factory pipelines will automatically ingest them in to the `Usage` table. Do not manually ingest a billing period that already exists in `Usage`. It will create duplicate records. 
+
 If you have access to multiple EA billing accounts you must specify the EA account number as shown below. If you do not specify any billing period names, the tool will automatically select the latest closed billing period.
 
 ```shell
