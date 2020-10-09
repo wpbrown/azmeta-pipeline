@@ -71,6 +71,531 @@
         }
     },
     "variables": {
+        "usageTableTranslator": {
+            "type": "TabularTranslator",
+            "mappings": [
+                {
+                    "source": {
+                        "name": "InvoiceSectionName",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "InvoiceSectionName",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "AccountName",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "AccountName",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "AccountOwnerId",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "AccountOwnerId",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "SubscriptionId",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "SubscriptionId",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "SubscriptionName",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "SubscriptionName",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "ResourceGroup",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "ResourceGroup",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "ResourceLocation",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "ResourceLocation",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "Date",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "Date",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "ProductName",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "ProductName",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "MeterCategory",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "MeterCategory",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "MeterSubCategory",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "MeterSubCategory",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "MeterId",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "MeterId",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "MeterName",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "MeterName",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "MeterRegion",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "MeterRegion",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "UnitOfMeasure",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "UnitOfMeasure",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "Quantity",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "Quantity",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "EffectivePrice",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "EffectivePrice",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "CostInBillingCurrency",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "CostInBillingCurrency",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "CostCenter",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "CostCenter",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "ConsumedService",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "ConsumedService",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "ResourceId",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "ResourceId",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "Tags",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "Tags",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "OfferId",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "OfferId",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "AdditionalInfo",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "AdditionalInfo",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "ServiceInfo1",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "ServiceInfo1",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "ServiceInfo2",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "ServiceInfo2",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "ResourceName",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "ResourceName",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "ReservationId",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "ReservationId",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "ReservationName",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "ReservationName",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "UnitPrice",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "UnitPrice",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "ProductOrderId",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "ProductOrderId",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "ProductOrderName",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "ProductOrderName",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "Term",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "Term",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "PublisherType",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "PublisherType",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "PublisherName",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "PublisherName",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "ChargeType",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "ChargeType",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "Frequency",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "Frequency",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "PricingModel",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "PricingModel",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "AvailabilityZone",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "AvailabilityZone",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "BillingAccountId",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "BillingAccountId",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "BillingAccountName",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "BillingAccountName",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "BillingCurrencyCode",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "BillingCurrencyCode",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "BillingPeriodStartDate",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "BillingPeriodStartDate",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "BillingPeriodEndDate",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "BillingPeriodEndDate",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "BillingProfileId",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "BillingProfileId",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "BillingProfileName",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "BillingProfileName",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "InvoiceSectionId",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "InvoiceSectionId",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "IsAzureCreditEligible",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "IsAzureCreditEligible",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "PartNumber",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "PartNumber",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "PayGPrice",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "PayGPrice",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "PlanName",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "PlanName",
+                        "type": "String"
+                    }
+                },
+                {
+                    "source": {
+                        "name": "ServiceFamily",
+                        "type": "String"
+                    },
+                    "sink": {
+                        "name": "ServiceFamily",
+                        "type": "String"
+                    }
+                }
+            ]
+        }
     },
     "resources": [
         {
@@ -464,7 +989,8 @@
                                     "type": "Expression"
                                 }
                             },
-                            "enableStaging": false
+                            "enableStaging": false,
+                            "translator": "[variables('usageTableTranslator')]"
                         },
                         "inputs": [
                             {
@@ -526,15 +1052,7 @@
                                     "fileExtension": ".gz"
                                 }
                             },
-                            "enableStaging": false,
-                            "translator": {
-                                "type": "TabularTranslator",
-                                "typeConversion": true,
-                                "typeConversionSettings": {
-                                    "allowDataTruncation": true,
-                                    "treatBooleanAsNumber": false
-                                }
-                            }
+                            "enableStaging": false
                         },
                         "inputs": [
                             {
@@ -619,7 +1137,8 @@
                                     "type": "Expression"
                                 }
                             },
-                            "enableStaging": false
+                            "enableStaging": false,
+                            "translator": "[variables('usageTableTranslator')]"
                         },
                         "inputs": [
                             {
