@@ -31,8 +31,8 @@ IngestTo{TABLE_BASE}()
 cluster_url = sys.argv[1]
 db_name = sys.argv[2]
 
-logging.info('Cluster:', cluster_url)
-logging.info('Database:', db_name)
+logging.info('Cluster: %s', cluster_url)
+logging.info('Database: %s', db_name)
 
 logging.info('Creating connection string.')
 kcsb = KustoConnectionStringBuilder.with_aad_managed_service_identity_authentication(cluster_url)
