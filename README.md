@@ -61,8 +61,8 @@ This process requires an Azure subscription, resource group, and service princip
 ## Prerequisites
 
 * A subscription with the resource providers `Microsoft.Storage`, `Microsoft.ContainerInstance`, and `Microsoft.EventGrid` already registered. [Register the providers](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/resource-providers-and-types#azure-cli).
-* A resource group is required to deploy in to. [Create a resource group](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/manage-resource-groups-cli#create-resource-groups).
-* A user-assigned managed identity is required during deployment [Create a user-assigned managed identity](https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/how-to-manage-ua-identity-cli). This can be created in the resource group mentioned above, however it is not required to be located there. *This resource can be deleted after deployment of the template is complete.*
+* A resource group is required to deploy in to. [Create a resource group](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/manage-resource-groups-cli#create-resource-groups). You must have 'Owner' rights on the resource group.
+* A user-assigned managed identity is required during deployment. [Create a user-assigned managed identity](https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/how-to-manage-ua-identity-cli). This can be created in the resource group mentioned above, however it is not required to be located there. *This resource can be deleted after deployment of the template is complete.*
 * A service principal with a password/key is required for Azure Data Factory to connect to Azure Data Explorer. [Create a service principal](https://docs.microsoft.com/en-us/cli/azure/create-an-azure-service-principal-azure-cli?view=azure-cli-latest#password-based-authentication). Azure Data Factory does not currently support connecting Azure Data Explorer via managed identity.
 
 ## Deploy the ARM Template
@@ -88,7 +88,7 @@ _artifactsLocation | The base URI where artifacts required by this template are 
 
 This tutorial assumes you are using Bash. If you are not using the Azure Cloud Shell, sign in to Azure CLI with `az login`.
 
-Ensure the correct subscription is the default (`az account show`). You can change the default with `az account set`.
+Ensure the correct subscription is the default (`az account show`). You can change the default with `az account set -s ...`.
 
 ```bash
 # Basic Info
@@ -125,6 +125,47 @@ az deployment group create -g $RG_NAME \
   "kustoIngestClientId=$SP_AID" \
   "kustoIngestClientSecret=@"<(echo $SP_SECRET)
 ```
+
+### PowerShell Tutorial
+
+Ensure the correct subscription is the default (`Get-AzContext`). You can change the default with `Set-AzContext -SubscriptionName ...`.
+
+```pwsh
+# Basic Info
+$RG_NAME="azmetapipeline-test-rg"
+$LOCATION="eastus2"
+
+# Ensure the subscription is ready
+Register-AzResourceProvider -ProviderNamespace "Microsoft.Storage"
+Register-AzResourceProvider -ProviderNamespace "Microsoft.ContainerInstance"
+Register-AzResourceProvider -ProviderNamespace "Microsoft.EventGrid"
+
+# Create the RG
+New-AzResourceGroup -Name $RG_NAME -Location $LOCATION
+
+# Create the service principal for Kusto access
+$SP = New-AzADServicePrincipal -SkipAssignment
+$SP | Update-AzADServicePrincipal -IdentifierUri "http://azmetapipeline-test-sp"
+
+# Create the user assigned managed identity
+$MUID = New-AzUserAssignedIdentity -ResourceGroupName $RG_NAME -Name "deploy-muid"
+
+# Grant the user assigned managed identity access to the RG
+# May need a few seconds after last command due to AAD eventual consistency
+New-AzRoleAssignment -ObjectId $MUID.PrincipalId -ResourceGroup $RG_NAME -RoleDefinitionName "Contributor"
+
+# Deploy the template
+New-AzResourceGroupDeployment `
+  -ResourceGroupName $RG_NAME `
+  -TemplateUri "https://raw.githubusercontent.com/wpbrown/azmeta-pipeline/master/azuredeploy.json" `
+  -TemplateParameterObject @{
+    deploymentIdentity = $MUID.Id
+    kustoIngestClientId = $SP.ApplicationId
+    kustoIngestClientSecret = $SP.Secret 
+  }
+```
+
+### Post Installation
 
 Once the template deployment is complete, you can configure automatic data loading in the next section or [manually load data](#manual-data-loading) with azmpcli.
 
