@@ -63,6 +63,8 @@ This process requires an Azure subscription, resource group, and service princip
 * A subscription with the resource providers `Microsoft.Storage`, `Microsoft.ContainerInstance`, and `Microsoft.EventGrid` already registered. [Register the providers](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/resource-providers-and-types#azure-cli).
 * A resource group is required to deploy in to. [Create a resource group](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/manage-resource-groups-cli#create-resource-groups). You must have 'Owner' rights on the resource group.
 * A user-assigned managed identity is required during deployment. [Create a user-assigned managed identity](https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/how-to-manage-ua-identity-cli). This can be created in the resource group mentioned above, however it is not required to be located there. *This resource can be deleted after deployment of the template is complete.*
+  * The identity must have 'Contributor' or higher rights on the resource group being deployed to.
+  * The identity must have 'Managed Identity Operator' or higher rights on the resource group it belongs to (*if* it is not located in the resource group being deployed to).
 * A service principal with a password/key is required for Azure Data Factory to connect to Azure Data Explorer. [Create a service principal](https://docs.microsoft.com/en-us/cli/azure/create-an-azure-service-principal-azure-cli?view=azure-cli-latest#password-based-authentication). Azure Data Factory does not currently support connecting Azure Data Explorer via managed identity.
 
 ## Deploy the ARM Template
