@@ -102,6 +102,7 @@ LOCATION="eastus2"
 az provider register -n 'Microsoft.Storage' --wait
 az provider register -n 'Microsoft.ContainerInstance' --wait
 az provider register -n 'Microsoft.EventGrid' --wait
+az provider register -n 'Microsoft.CostManagementExports' --wait
 
 # Create the RG
 az group create -n $RG_NAME -l $LOCATION
