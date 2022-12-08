@@ -10,7 +10,7 @@ azure-identity==1.5.0
     # via azure-kusto-data
 azure-kusto-data==2.0.0
     # via -r requirements.in
-certifi==2020.12.5
+certifi==2022.12.7
     # via requests
 cffi==1.14.4
     # via cryptography
@@ -23,13 +23,13 @@ cryptography==3.3.1
     #   pyjwt
 idna==2.10
     # via requests
-msal-extensions==0.3.0
-    # via azure-identity
 msal==1.8.0
     # via
     #   azure-identity
     #   azure-kusto-data
     #   msal-extensions
+msal-extensions==0.3.0
+    # via azure-identity
 portalocker==1.7.1
     # via msal-extensions
 pycparser==2.20
